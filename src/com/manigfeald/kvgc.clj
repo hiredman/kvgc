@@ -16,18 +16,14 @@
     heap (locking is a nop for value based heaps)"))
 
 (defn mark [heap root-set mark-value]
-  (reduce
-   (fn [heap ptr]
-     (tag heap ptr mark-value))
-   heap
-   (for [ptr root-set
-         tree-item (tree-seq (comp seq (partial references heap))
-                             (partial references heap)
-                             ptr)
-         :when (not (seq? tree-item))
-         :let [ptr tree-item]
-         :when ptr]
-     ptr)))
+  (loop [[ptr & root-set] (seq root-set)
+         heap heap]
+    (if-not ptr
+      heap
+      (if (= mark-value (tag-value heap ptr))
+        (recur root-set heap)
+        (recur (concat (references heap ptr) root-set)
+               (tag heap ptr mark-value))))))
 
 (defn sweep [heap mark-value]
   (reduce
